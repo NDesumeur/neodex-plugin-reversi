@@ -1,0 +1,22 @@
+{
+  "id": "neodex.reversi",
+  "name": "Reversi",
+  "version": "1.0.0",
+  "author": "NDesumeur",
+  "description": "Encadre les pions de l'ordinateur pour les retourner à ta couleur. Celui qui a le plus de pions à la fin gagne.",
+  "icon": "icon.png",
+  "entry": "index.js",
+  "view": "reversi",
+  "neobase": ">=4.0.0",
+  "type": "app",
+  "category": "Jeux",
+  "syncMode": "progression",
+  "syncInfo": "Victoires par niveau.",
+  "mobile": false,
+  "system": false,
+  "dependencies": {},
+  "sdk": "2.1.0",
+  "permissions": [
+    "storage"
+  ]
+}
