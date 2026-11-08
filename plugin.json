@@ -1,7 +1,7 @@
 {
   "id": "neodex.reversi",
   "name": "Reversi",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "NDesumeur",
   "description": "Le jeu de pions à retourner sur un plateau de 8 × 8 : pose un pion pour encadrer ceux de l'ordinateur en ligne, en colonne ou en diagonale, et ils passent à ta couleur. Les cases jouables sont marquées, on passe son tour sans coup possible, le plus de pions à la fin gagne. Trois niveaux, jusqu'à un adversaire qui prévoit 4 coups ; bilan par niveau.",
   "icon": "icon.png",
