@@ -5,19 +5,21 @@ const HTML = `<div class="appWrap wide">
   <div class="gMain"><div class="gameBox"><canvas id="gc" width="320" height="216"></canvas></div>
     <div class="gSide">
       <div class="sysCard"><b>RECORDS</b><div class="gStats" id="gStats"></div></div>
-      <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button></div>
+      <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button><button class="btn" id="rvFs">PLEIN ÉCRAN</button></div>
       <label class="row">Niveau <select id="rvLvl" class="f"><option value="0">Facile</option><option value="1">Normal</option><option value="2">Difficile</option></select></label>
       <div class="hint">Un pion se pose seulement s'il encadre au moins un pion adverse, en ligne, en colonne ou en diagonale. Les points verts montrent les cases jouables.</div><div class="hint">Les coins ne se reprennent jamais : ce sont les meilleures cases.</div>
     </div></div>
 </div>`;
 const CSS = `.gMain{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
-.gameBox{display:grid;place-items:center;padding:10px;background:#05010b;flex:2;min-width:320px;position:relative}
-.gameBox canvas{width:100%;image-rendering:pixelated;cursor:var(--cp,pointer);touch-action:none}
+.gameBox{display:grid;place-items:center;padding:10px;background:#05010b;flex:2 1 480px;min-width:min(100%,320px);position:relative}
+.gameBox:fullscreen{padding:0}
+.gameBox:fullscreen canvas{width:min(100vw,calc(100vh * 320 / 216));max-width:none}
+.gameBox canvas{image-rendering:pixelated;cursor:var(--cp,pointer);touch-action:none}
 .gSide{display:flex;flex-direction:column;gap:14px;flex:1;min-width:250px;max-width:420px}
 .gSide .sysCard{display:flex;flex-direction:column}
 .gStats{display:grid;grid-template-columns:1fr auto;gap:4px 14px}
 .gStats b{text-align:right}
-.gameBox canvas{max-width:640px;aspect-ratio:320/216}`;
+.gameBox canvas{width:min(100%,max(280px,calc((100vh - 170px) * 320 / 216)));height:auto;aspect-ratio:320/216}`;
 /* ---------- l'habillage pixel art, dessiné à la main : police bitmap (accents compris), cadres, boutons, icônes ----------
    Tout est en pixels pleins, agrandis par 2 sans lissage : aucun dégradé, aucune ombre floue. */
 const PXK = (() => {
@@ -289,7 +291,7 @@ export default async function (ctx) {
   view.innerHTML = HTML;
   pxSkin(view.querySelector('.appWrap'), { title: "REVERSI", T: {"k": "#030c08", "k2": "#082014", "fill": "#0e3020", "fillOn": "#14402a", "hl": "#1a4a32", "line": "#2e7050", "acc": "#5fdf6a", "accL": "#c8ffc8", "accS": "#2a9a3a", "accD": "#0a3a10", "rivet": "#c8ffc8", "btn": "#1a4a32", "btnHi": "#4a9a6a", "btnLo": "#082014", "btnHov": "#1e5a3a", "btnHovHi": "#6aba8a", "text": "#f0fff4", "muted": "#a8d8b8", "acc2": "#ffd84a", "gold": "#ffd84a", "orange": "#ffa030", "red": "#ff4a5a", "green": "#7ee07a", "green2": "#2f8a3a", "bg": "#05140c", "bgDot": "#0e3020", "bgDot2": "#082014", "spark": "#2e7050", "spark2": "#ffd84a", "tile": ["................", "...:............", "................", "..........+.....", "................", "................", ".....:..........", "................", "................", ".............:..", "................", "..+.............", "................", ".........:......", "................", "................"]},
   emblem: ["............", "..kkkk......", ".kwwwwk.....", "kwwwwwwk....", "kwwwwwwk....", "kwwwwwwkkk..", ".kwwwwkmmmk.", "..kkkkmmmmmk", ".....kmmmmmk", ".....kmmmmmk", "......kmmmk.", ".......kkk.."],
-  icons: [[/^NOUVELLE/, "play"], [/^RECORDS/, "crown"]] });
+  icons: [[/^NOUVELLE/, "play"], [/^RECORDS/, "crown"], [/^PLEIN/, "full"]] });
   const $ = id => view.querySelector('#' + id) || document.getElementById(id);
   const doc = async n => { try { return await folder.read(n); } catch { return null; } };
   const games = { best: {}, ...(await doc('games')) };
@@ -414,6 +416,7 @@ $('gNew').onclick = () => { rvNew(); $('gNew').blur(); };
   const c = [...Array(8)].map(() => Array(8).fill(0)); c[0][1] = 1; c[0][2] = 2; c[5][5] = 1; c[5][6] = 2; const corner = rvAi(c, 2);
   console.assert(ms.length === 4 && rvCount(n, 1) === 4 && rvCount(n, 2) === 1 && corner && corner.x === 0 && corner.y === 0, 'reversi', corner);
 }
+$('rvFs').onclick = () => { $('rvFs').blur(); try { document.fullscreenElement ? document.exitFullscreen() : cv.parentElement.requestFullscreen?.().catch(() => {}); } catch {} };
 ctx.onOpen(() => { if (!rv) { rvNew(); rv.seen = rv.tick; } gameLoop(rv, 'reversi', () => {}, rvDraw); rvInfo(); });
 
 }
