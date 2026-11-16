@@ -1,9 +1,9 @@
 {
   "pluginId": "neodex.reversi",
   "repo": "NDesumeur/neodex-plugin-reversi",
-  "version": "1.1.0",
-  "sha256": "3871e3d9198cb147c8030fdb3d998cb814a205a18f83f7f4a6525b8137b3fa71",
-  "approvedAt": "2026-11-16T04:14:39.309Z",
+  "version": "1.1.1",
+  "sha256": "311566921244d6f46e01d84cfbb78876bbad929de4555ee2f3f61c8f12361102",
+  "approvedAt": "2026-11-16T16:38:51.417Z",
   "neobase": ">=4.0.0",
-  "signature": "9EF7yBGnKcSm/Z6wn+7zHDDj9lQMRTriM8/yw+ekk4ovLSFRt6G8S5UpHqSx6RKUNUya628lcvXzsHSHi+ZYCw=="
+  "signature": "E6ca8QAfKe3utcfVQyeCggh11hBhvrZgPW6w9xzxZYhx9kiCAWdH8Y+CxhdmAilW0sSNZmyBAomVKMkTXMqUCg=="
 }
