@@ -61,6 +61,7 @@
  "RECORDS": "RECORDS",
  "REVERSI": "REVERSI",
  "Reversi": "Reversi",
+ "Rien n'est synchronisé : tes records restent sur cet appareil.": "Nothing is synced: your records stay on this device.",
  "TOI": "YOU",
  "Tu passes ton tour": "You pass your turn",
  "Ua": "Ua",
@@ -68,7 +69,6 @@
  "Ud": "Ud",
  "Ug": "Ug",
  "Un pion se pose seulement s'il encadre au moins un pion adverse, en ligne, en colonne ou en diagonale. Les points verts montrent les cases jouables.": "A pawn only arises if it surrounds at least one opposing pawn, in line, column or diagonal. The green dots show the playable squares.",
- "Victoires par niveau.": "Victories per level.",
  "À toi": "To you",
  "ÉGALITÉ": "EQUALITY",
  "Égalités": "Ties"
