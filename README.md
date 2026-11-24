@@ -4,6 +4,10 @@ Le jeu de pions à retourner sur un plateau de 8 × 8 : encadre les pions de l'o
 
 *English version: [README.en.md](README.en.md)*
 
+## Trois façons de jouer (nouveau en 1.2.0)
+
+Contre l'ordinateur, à deux sur le même PC, ou à distance avec un ami grâce à un code (les couleurs s'échangent à chaque revanche).
+
 ## Les règles
 
 - La partie commence avec quatre pions au centre, deux de chaque couleur. Tu as les **noirs** et tu commences.

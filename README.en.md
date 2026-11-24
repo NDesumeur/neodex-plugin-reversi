@@ -4,6 +4,10 @@ The disc-flipping game on an 8 × 8 board: surround the computer's discs to turn
 
 *Version française : [README.md](README.md)*
 
+## Three ways to play (new in 1.2.0)
+
+Against the computer, two players on the same PC, or online with a friend using a code (colours swap at each rematch).
+
 ## Rules
 
 - The game starts with four discs in the centre, two of each colour. You play **black** and move first.

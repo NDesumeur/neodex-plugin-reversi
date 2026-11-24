@@ -1,16 +1,19 @@
 {
   "id": "neodex.reversi",
   "name": "Reversi",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "author": "NDesumeur",
-  "description": "Le jeu de pions à retourner sur un plateau de 8 × 8 : pose un pion pour encadrer ceux de l'ordinateur en ligne, en colonne ou en diagonale, et ils passent à ta couleur. Les cases jouables sont marquées, on passe son tour sans coup possible, le plus de pions à la fin gagne. Trois niveaux, jusqu'à un adversaire qui prévoit 4 coups ; bilan par niveau. Un bouton met le jeu en plein écran, et le plateau grandit avec la fenêtre.",
+  "description": "Le jeu de pions à retourner sur un plateau de 8 × 8 : pose un pion pour encadrer ceux de l'ordinateur en ligne, en colonne ou en diagonale, et ils passent à ta couleur. Les cases jouables sont marquées, on passe son tour sans coup possible, le plus de pions à la fin gagne. Trois niveaux, jusqu'à un adversaire qui prévoit 4 coups ; bilan par niveau. Un bouton met le jeu en plein écran, et le plateau grandit avec la fenêtre. À deux sur le même PC ou à distance par un code.",
   "icon": "icon.png",
   "entry": "index.js",
   "view": "reversi",
   "neobase": ">=4.0.0",
   "type": "app",
   "category": "Jeux",
-  "compatibility": ["windows", "linux"],
+  "compatibility": [
+    "windows",
+    "linux"
+  ],
   "syncMode": "aucune",
   "syncInfo": "Rien n'est synchronisé : tes records restent sur cet appareil.",
   "mobile": false,
@@ -18,6 +21,7 @@
   "dependencies": {},
   "sdk": "2.1.0",
   "permissions": [
-    "storage"
+    "storage",
+    "rooms"
   ]
 }

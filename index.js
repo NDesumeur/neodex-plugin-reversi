@@ -6,7 +6,9 @@ const HTML = `<div class="appWrap wide">
     <div class="gSide">
       <div class="sysCard"><b>RECORDS</b><div class="gStats" id="gStats"></div></div>
       <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button><button class="btn" id="rvFs">PLEIN ÉCRAN</button></div>
-      <label class="row">Niveau <select id="rvLvl" class="f"><option value="0">Facile</option><option value="1">Normal</option><option value="2">Difficile</option></select></label>
+      <label class="row">Partie <select id="rvMode" class="f"><option value="ia">Contre l'ordinateur</option><option value="deux">À deux sur ce PC</option><option value="net">À distance (par un code)</option></select></label>
+      <div id="rvNet" style="display:none"><div class="row"><button class="btn" id="rvHost">CRÉER UNE PARTIE</button></div><div class="row"><input class="f" id="rvCode" placeholder="CODE" maxlength="8" autocomplete="off" spellcheck="false" style="max-width:110px;text-transform:uppercase"><button class="btn" id="rvJoin">REJOINDRE</button></div><div class="hint" id="rvNetInfo"></div></div>
+      <label class="row" id="rvLvlRow">Niveau <select id="rvLvl" class="f"><option value="0">Facile</option><option value="1">Normal</option><option value="2">Difficile</option></select></label>
       <div class="hint">Un pion se pose seulement s'il encadre au moins un pion adverse, en ligne, en colonne ou en diagonale. Les points verts montrent les cases jouables.</div><div class="hint">Les coins ne se reprennent jamais : ce sont les meilleures cases.</div>
     </div></div>
 </div>`;
@@ -339,7 +341,15 @@ const RV_DISC = [  // 1 = noir, 2 = blanc ; trois largeurs pour l'animation du r
   for (let y = 0; y < 18; y++) for (let x = 0; x < 18; x++) { const dx = (x - 8.5) / (w / 2), dy = (y - 8.5) / 9, r = dx * dx + dy * dy; if (r > 1) continue; px(b, r > .78 ? '#05010b' : dy > .45 ? d : dx < -.1 && dy < -.1 && r < .45 ? l : m, x, y); }
   if (w === 18) { px(b, '#ffffff', 5, 4, 2, 1); px(b, '#ffffff', 4, 5, 1, 2); }
 })));
-const rvs = gstore('reversi', {lvl: 1, w: [0, 0, 0], l: [0, 0, 0], d: [0, 0, 0]});
+const rvs = gstore('reversi', {lvl: 1, w: [0, 0, 0], l: [0, 0, 0], d: [0, 0, 0]}); rvs.mode ??= 'ia'; rvs.duo ??= {n: 0, b: 0, w: 0}; rvs.net ??= {w: 0, l: 0, d: 0};
+if (rvs.mode === 'net') rvs.mode = 'ia';  // une partie à distance ne survit pas à la fermeture
+// à distance : deux PC, une partie par un code (ctx.room, serveur NeoDex). Les noirs (1) commencent ; l'hôte a les noirs à la première partie,
+// puis les couleurs s'échangent à chaque revanche. Chaque coup part à l'autre ({t:'coup', x, y, n}) et n'est joué que si c'est bien son tour.
+const net = {code: '', me: 0, host: false, opp: '', oppId: '', next: 1, pending: null};
+const netOn = () => rvs.mode === 'net' && !!net.opp;
+const netSay = t => { $('rvNetInfo').textContent = t; };
+const rvMine = () => rv.mode === 'play' && (rvs.mode === 'ia' ? rv.turn === 1 : rvs.mode === 'deux' ? true : netOn() && rv.turn === net.me);
+const rvName = p => rvs.mode === 'ia' ? (p === 1 ? 'TOI' : 'ORDI') : rvs.mode === 'deux' ? (p === 1 ? 'NOIRS' : 'BLANCS') : (p === net.me ? 'TOI' : 'AMI');
 const rvFlips = (b, x, y, p) => { if (b[y][x]) return []; const out = []; for (const [dx, dy] of RV_DIRS) { const line = []; let a = x + dx, c = y + dy; while (a >= 0 && c >= 0 && a < 8 && c < 8 && b[c][a] === 3 - p) { line.push([a, c]); a += dx; c += dy; } if (line.length && a >= 0 && c >= 0 && a < 8 && c < 8 && b[c][a] === p) out.push(...line); } return out; };
 const rvMoves = (b, p) => { const out = []; for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const f = rvFlips(b, x, y, p); if (f.length) out.push({x, y, f}); } return out; };
 const rvPlay = (b, m, p) => { const n = b.map(r => [...r]); n[m.y][m.x] = p; for (const [a, c] of m.f) n[c][a] = p; return n; };
@@ -361,17 +371,20 @@ function rvAi(b, lvl) {
 let rv = null;
 function rvNew() {
   const b = [...Array(8)].map(() => Array(8).fill(0)); b[3][3] = b[4][4] = 2; b[3][4] = b[4][3] = 1;
-  rv = Object.assign(rv || {tick: 0, raf: 0}, {mode: 'play', b, turn: 1, anim: [], last: null, think: 0, msg: '', overAt: 0, hover: null}); rvInfo();
+  rv = Object.assign(rv || {tick: 0, raf: 0}, {mode: rvs.mode === 'net' && !net.opp ? 'wait' : 'play', b, turn: 1, anim: [], last: null, think: 0, msg: '', overAt: 0, hover: null, n: 0}); rvInfo();
 }
 function rvApply(m, p) {
   rv.b = rvPlay(rv.b, m, p); rv.last = [m.x, m.y]; rv.anim = m.f.map(([a, c], i) => ({x: a, y: c, t: 12 + i * 2, to: p})); beep(p === 1 ? 300 : 240, .06, 'triangle', 0, .07);
-  rv.turn = 3 - p;
-  if (!rvMoves(rv.b, rv.turn).length) { if (rvMoves(rv.b, p).length) { rv.msg = rv.turn === 1 ? 'Tu passes ton tour' : 'L\'ordinateur passe'; rv.turn = p; } else rvEnd(); }
-  if (rv.turn === 2 && rv.mode === 'play') rv.think = 30;
+  rv.turn = 3 - p; rv.n++;
+  if (!rvMoves(rv.b, rv.turn).length) { if (rvMoves(rv.b, p).length) { const nm = rvName(rv.turn); rv.msg = nm === 'TOI' ? 'Tu passes ton tour' : nm === 'ORDI' ? 'L\'ordinateur passe' : nm === 'AMI' ? 'Ton ami passe' : (nm === 'NOIRS' ? 'Les noirs passent' : 'Les blancs passent'); rv.turn = p; } else rvEnd(); }
+  if (rvs.mode === 'ia' && rv.turn === 2 && rv.mode === 'play') rv.think = 30;
+  if (rvs.mode === 'net') setTimeout(netTry, 0);
 }
 function rvEnd() {
-  rv.mode = 'over'; rv.overAt = rv.tick; const me = rvCount(rv.b, 1), it = rvCount(rv.b, 2), L = rvs.lvl;
-  if (me > it) { rvs.w[L]++; best('reversi:' + L, me - it); [523, 659, 784].forEach((f, k) => setTimeout(() => beep(f, .15, 'triangle'), k * 120)); } else if (me < it) { rvs.l[L]++; beep(180, .4, 'sawtooth', 90); } else rvs.d[L]++;
+  rv.mode = 'over'; rv.overAt = rv.tick; const L = rvs.lvl, my = rvs.mode === 'net' ? net.me : 1, me = rvCount(rv.b, my), it = rvCount(rv.b, 3 - my);
+  if (rvs.mode === 'deux') { rvs.duo[me > it ? 'b' : me < it ? 'w' : 'n']++; [523, 659, 784].forEach((f, k) => setTimeout(() => beep(f, .15, 'triangle'), k * 120)); }
+  else if (rvs.mode === 'net') { rvs.net[me > it ? 'w' : me < it ? 'l' : 'd']++; if (me > it) [523, 659, 784].forEach((f, k) => setTimeout(() => beep(f, .15, 'triangle'), k * 120)); else if (me < it) beep(180, .4, 'sawtooth', 90); }
+  else if (me > it) { rvs.w[L]++; best('reversi:' + L, me - it); [523, 659, 784].forEach((f, k) => setTimeout(() => beep(f, .15, 'triangle'), k * 120)); } else if (me < it) { rvs.l[L]++; beep(180, .4, 'sawtooth', 90); } else rvs.d[L]++;
   saveGames(); rvInfo();
 }
 const RV_BG = cnv(W, H, b => {
@@ -384,7 +397,7 @@ const RV_BG = cnv(W, H, b => {
 function rvDraw() {
   for (; rv.seen < rv.tick; rv.seen++) { for (const a of rv.anim) a.t--; rv.anim = rv.anim.filter(a => a.t > 0); if (rv.think > 0 && --rv.think === 0 && rv.mode === 'play' && rv.turn === 2) { const m = rvAi(rv.b, rvs.lvl); if (m) rvApply(m, 2); } if (rv.msg && rv.tick % 120 === 0) rv.msg = ''; }
   g.drawImage(RV_BG, 0, 0); const {C, X, Y} = RV;
-  const legal = rv.mode === 'play' && rv.turn === 1 ? rvMoves(rv.b, 1) : [];
+  const legal = rvMine() ? rvMoves(rv.b, rv.turn) : [];
   for (const m of legal) { const hv = rv.hover && rv.hover[0] === m.x && rv.hover[1] === m.y; px(g, hv ? '#5fdf6a' : '#3a9a5a', X + m.x * C + 10, Y + m.y * C + 10, 4, 4); }
   for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
     const v = rv.b[y][x]; if (!v) continue; const a = rv.anim.find(q => q.x === x && q.y === y);
@@ -393,22 +406,61 @@ function rvDraw() {
   }
   if (rv.last) { px(g, '#ff4a5a', X + rv.last[0] * C + 11, Y + rv.last[1] * C + 11, 2, 2); }
   // le panneau : les deux scores, à qui le tour
-  const me = rvCount(rv.b, 1), it = rvCount(rv.b, 2);
-  g.drawImage(RV_DISC[0][0], 222, 22); pxFont(g, 'TOI', 246, 30, '#ffffff', 7); pxFont(g, String(me), 298, 36, '#ffffff', 12, 'right');
-  g.drawImage(RV_DISC[1][0], 222, 52); pxFont(g, 'ORDI', 246, 60, '#ffffff', 7); pxFont(g, String(it), 298, 66, '#ffffff', 12, 'right');
+  const c1 = rvCount(rv.b, 1), c2 = rvCount(rv.b, 2), my = rvs.mode === 'net' ? net.me || 1 : 1, me = my === 1 ? c1 : c2, it = my === 1 ? c2 : c1;
+  g.drawImage(RV_DISC[0][0], 222, 22); pxFont(g, rvName(1), 246, 30, '#ffffff', 7); pxFont(g, String(c1), 298, 36, '#ffffff', 12, 'right');
+  g.drawImage(RV_DISC[1][0], 222, 52); pxFont(g, rvName(2), 246, 60, '#ffffff', 7); pxFont(g, String(c2), 298, 66, '#ffffff', 12, 'right');
   px(g, rv.turn === 1 ? '#ffd84a' : '#5a4030', 218, 22, 2, 18); px(g, rv.turn === 2 ? '#ffd84a' : '#5a4030', 218, 52, 2, 18);
-  pxFont(g, ['Facile', 'Normal', 'Difficile'][rvs.lvl], 260, 96, '#e8b070', 7, 'center');
-  if (rv.mode === 'play') pxFont(g, rv.turn === 1 ? 'À toi' : 'Il réfléchit…', 260, 116, rv.turn === 1 ? '#5fdf6a' : '#c8b8a0', 7, 'center');
+  pxFont(g, rvs.mode === 'ia' ? ['Facile', 'Normal', 'Difficile'][rvs.lvl] : rvs.mode === 'deux' ? 'À deux' : 'À distance', 260, 96, '#e8b070', 7, 'center');
+  if (rv.mode === 'wait') pxFont(g, net.code ? 'Code ' + net.code : 'Crée ou rejoins', 260, 116, '#ffd84a', 7, 'center');
+  if (rv.mode === 'play') { const t = rvs.mode === 'deux' ? (rv.turn === 1 ? 'Aux noirs' : 'Aux blancs') : rvMine() ? 'À toi' : rvs.mode === 'net' ? 'Ton ami joue…' : 'Il réfléchit…'; pxFont(g, t, 260, 116, rvMine() ? '#5fdf6a' : '#c8b8a0', 7, 'center'); }
   if (rv.msg) pxFont(g, rv.msg, 260, 136, '#ffd84a', 6, 'center');
-  if (rv.mode === 'over' && rv.tick - rv.overAt > 40) gameText(g, W, [[me > it ? 'GAGNÉ !' : me < it ? 'PERDU' : 'ÉGALITÉ', me > it ? '#ffd84a' : me < it ? '#ff4a5a' : '#ffffff', 12], [me + ' à ' + it, '#ffffff'], ['Clic pour rejouer', '#e8b070']], 92);
+  if (rv.mode === 'over' && rv.tick - rv.overAt > 40) { const duo = rvs.mode === 'deux'; gameText(g, W, [[duo ? (c1 > c2 ? 'LES NOIRS GAGNENT' : c1 < c2 ? 'LES BLANCS GAGNENT' : 'ÉGALITÉ') : me > it ? 'GAGNÉ !' : me < it ? 'PERDU' : 'ÉGALITÉ', duo || me > it ? '#ffd84a' : me < it ? '#ff4a5a' : '#ffffff', 12], [(duo ? c1 + ' à ' + c2 : me + ' à ' + it), '#ffffff'], [rvs.mode === 'net' ? (net.host ? 'Clic : revanche' : 'Clic : demander une revanche') : 'Clic pour rejouer', '#e8b070']], 92); }
 }
 const rvCell = e => { const [x, y] = cpos(e), cx = Math.floor((x - RV.X) / RV.C), cy = Math.floor((y - RV.Y) / RV.C); return cx >= 0 && cy >= 0 && cx < 8 && cy < 8 ? [cx, cy] : null; };
 cv.onpointermove = e => { if (rv) rv.hover = rvCell(e); };
 cv.onpointerdown = e => {
-  e.preventDefault(); if (!rv) return; if (rv.mode === 'over') { if (rv.tick - rv.overAt > 40) rvNew(); return; }
-  if (rv.turn !== 1 || rv.anim.length) return; const c = rvCell(e); if (!c) return; const m = rvMoves(rv.b, 1).find(m => m.x === c[0] && m.y === c[1]); if (m) rvApply(m, 1); else beep(120, .05);
+  e.preventDefault(); if (!rv) return; if (rv.mode === 'over') { if (rv.tick - rv.overAt > 40) { if (rvs.mode === 'net') netAgain(); else rvNew(); } return; }
+  if (!rvMine() || rv.anim.length) return; const c = rvCell(e); if (!c) return; const m = rvMoves(rv.b, rv.turn).find(m => m.x === c[0] && m.y === c[1]);
+  if (!m) return beep(120, .05);
+  if (rvs.mode === 'net') ctx.room.send({t: 'coup', x: m.x, y: m.y, n: rv.n}).catch(e => toast(e.message, true));
+  rvApply(m, rv.turn);
 };
-function rvInfo() { const L = rvs.lvl; showStats([['Gagnées (' + ['facile', 'normal', 'difficile'][L] + ')', rvs.w[L]], ['Perdues', rvs.l[L]], ['Égalités', rvs.d[L]], ['Plus grand écart', games.best['reversi:' + L] || '-']]); $('rvLvl').value = L; }
+function rvInfo() { const L = rvs.lvl;
+  if (rvs.mode === 'deux') showStats([['Victoires des noirs', rvs.duo.b], ['Victoires des blancs', rvs.duo.w], ['Égalités', rvs.duo.n]]);
+  else if (rvs.mode === 'net') showStats([['Gagnées à distance', rvs.net.w], ['Perdues', rvs.net.l], ['Égalités', rvs.net.d]]);
+  else showStats([['Gagnées (' + ['facile', 'normal', 'difficile'][L] + ')', rvs.w[L]], ['Perdues', rvs.l[L]], ['Égalités', rvs.d[L]], ['Plus grand écart', games.best['reversi:' + L] || '-']]);
+  $('rvLvl').value = L; $('rvMode').value = rvs.mode; $('rvLvlRow').style.display = rvs.mode === 'ia' ? '' : 'none'; $('rvNet').style.display = rvs.mode === 'net' ? '' : 'none'; }
+const netLeave = () => { if (net.code) try { ctx.room.leave().catch(() => {}); } catch {} Object.assign(net, {code: '', me: 0, host: false, opp: '', oppId: '', next: 1, pending: null}); };
+function netTry() { const m = net.pending; if (!m || !rv || rv.mode !== 'play' || rv.turn === net.me) return; net.pending = null; if (m.n !== rv.n) return; const mv = rvMoves(rv.b, rv.turn).find(q => q.x === m.x && q.y === m.y); if (mv) rvApply(mv, rv.turn); }
+function netStart(me) { net.me = me; net.pending = null; rvNew(); netSay('Contre ' + net.opp + ' · tu as les ' + (me === 1 ? 'noirs (tu commences)' : 'blancs') + ' · code ' + net.code); }
+function netAgain() { if (!netOn()) return; if (net.host) { const me = net.next; net.next = 3 - me; ctx.room.send({t: 'start', you: 3 - me}).catch(() => {}); netStart(me); } else ctx.room.send({t: 'rejouer'}).catch(() => {}); }
+ctx.room?.on(ev => {
+  if (rvs.mode !== 'net' || !net.code) return;
+  if (ev.t === 'arrive') {
+    if (!net.host) return;
+    if (net.opp) return void ctx.room.send({t: 'pleine'}, ev.id).catch(() => {});
+    net.opp = ev.name || 'ton ami'; net.oppId = ev.id; sfx?.('notify'); netAgain();
+  } else if (ev.t === 'part' && ev.id === net.oppId || ev.t === 'fin') {
+    netSay(ev.t === 'fin' ? 'Connexion perdue avec le serveur de parties.' : 'Ton ami a quitté la partie.' + (net.host ? ' Le code reste valable : il peut revenir.' : ''));
+    net.opp = ''; net.oppId = ''; if (ev.t === 'fin') net.code = ''; if (rv && rv.mode === 'play') rv.mode = 'wait';
+  } else if (ev.t === 'msg' && ev.from === net.oppId) {
+    const m = ev.data || {};
+    if (m.t === 'start' && !net.host) netStart(m.you === 2 ? 2 : 1);
+    else if (m.t === 'rejouer' && net.host && rv.mode === 'over') netAgain();
+    else if (m.t === 'pleine') { netSay('Cette partie a déjà deux joueurs.'); netLeave(); }
+    else if (m.t === 'coup' && Number.isInteger(m.x) && Number.isInteger(m.y) && Number.isInteger(m.n)) { net.pending = m; netTry(); }
+  }
+});
+$('rvMode').onchange = () => { netLeave(); rvs.mode = ['ia', 'deux', 'net'].includes($('rvMode').value) ? $('rvMode').value : 'ia'; saveGames(); rvNew(); $('rvMode').blur(); if (rvs.mode === 'net') netSay('Crée une partie et donne son code à ton ami, ou tape le sien.'); };
+$('rvHost').onclick = async () => { $('rvHost').blur();
+  try { netLeave(); const r = await ctx.room.create('hôte'); Object.assign(net, {code: r.code, host: true}); rvNew(); netSay('Code de la partie : ' + r.code + ' · donne-le à ton ami. En attente…'); }
+  catch (e) { netSay('Impossible de créer la partie : ' + e.message); } };
+$('rvJoin').onclick = async () => { $('rvJoin').blur();
+  try { netLeave(); const r = await ctx.room.join($('rvCode').value, 'invité'), host = r.joueurs.find(j => j.host);
+    if (!host || r.joueurs.length > 1) { await ctx.room.leave(); return netSay(host ? 'Cette partie a déjà deux joueurs.' : 'Aucune partie avec ce code.'); }
+    Object.assign(net, {code: r.code, host: false, opp: host.name || 'ton ami', oppId: host.id}); netSay('Connecté · la partie commence…'); }
+  catch (e) { netSay('Impossible de rejoindre : ' + e.message); } };
+$('rvCode').onkeydown = e => { if (e.key === 'Enter') $('rvJoin').click(); };
 $('rvLvl').onchange = () => { rvs.lvl = +$('rvLvl').value; saveGames(); rvNew(); };
 $('gNew').onclick = () => { rvNew(); $('gNew').blur(); };
 {  // vérification : 4 coups au départ, un coup retourne les bons pions, l'ordinateur difficile prend un coin quand il peut
@@ -417,6 +469,7 @@ $('gNew').onclick = () => { rvNew(); $('gNew').blur(); };
   console.assert(ms.length === 4 && rvCount(n, 1) === 4 && rvCount(n, 2) === 1 && corner && corner.x === 0 && corner.y === 0, 'reversi', corner);
 }
 $('rvFs').onclick = () => { $('rvFs').blur(); try { document.fullscreenElement ? document.exitFullscreen() : cv.parentElement.requestFullscreen?.().catch(() => {}); } catch {} };
+cv.__rv = {st: () => rv, rvs: () => rvs, net: () => net, moves: () => rvMoves(rv.b, rv.turn), apply: m => rvApply(m, rv.turn), RV};
 ctx.onOpen(() => { if (!rv) { rvNew(); rv.seen = rv.tick; } gameLoop(rv, 'reversi', () => {}, rvDraw); rvInfo(); });
 
 }
