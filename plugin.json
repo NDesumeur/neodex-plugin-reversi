@@ -1,7 +1,7 @@
 {
   "id": "neodex.reversi",
   "name": "Reversi",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "author": "NDesumeur",
   "description": "Le jeu de pions à retourner sur un plateau de 8 × 8 : pose un pion pour encadrer ceux de l'ordinateur en ligne, en colonne ou en diagonale, et ils passent à ta couleur. Les cases jouables sont marquées, on passe son tour sans coup possible, le plus de pions à la fin gagne. Trois niveaux, jusqu'à un adversaire qui prévoit 4 coups ; bilan par niveau. Un bouton met le jeu en plein écran, et le plateau grandit avec la fenêtre. À deux sur le même PC ou à distance par un code.",
   "icon": "icon.png",
@@ -23,5 +23,71 @@
   "permissions": [
     "storage",
     "rooms"
+  ],
+  "succes": [
+    {
+      "id": "facile",
+      "nom": "Premiers pions",
+      "texte": "Battre l'ordinateur en Facile"
+    },
+    {
+      "id": "normal",
+      "nom": "Stratège",
+      "texte": "Battre l'ordinateur en Normal"
+    },
+    {
+      "id": "difficile",
+      "nom": "Grand maître",
+      "texte": "Battre l'ordinateur en Difficile"
+    },
+    {
+      "id": "dix",
+      "nom": "Habitué du damier",
+      "texte": "Gagner 10 parties contre l'ordinateur"
+    },
+    {
+      "id": "large",
+      "nom": "Écrasante victoire",
+      "texte": "Gagner avec 40 pions d'avance"
+    },
+    {
+      "id": "net",
+      "nom": "Retourner un ami",
+      "texte": "Gagner une partie en ligne"
+    },
+    {
+      "id": "duo",
+      "nom": "Face à face",
+      "texte": "Jouer une partie à deux sur le même écran"
+    },
+    {
+      "id": "blanchi",
+      "nom": "Plus un seul pion",
+      "texte": "Gagner sans laisser un seul pion à l'adversaire",
+      "cache": true
+    }
+  ],
+  "records": [
+    {
+      "id": "facile",
+      "nom": "Facile (avance)",
+      "sens": "haut",
+      "format": "nombre",
+      "unite": "pions"
+    },
+    {
+      "id": "normal",
+      "nom": "Normal (avance)",
+      "sens": "haut",
+      "format": "nombre",
+      "unite": "pions"
+    },
+    {
+      "id": "difficile",
+      "nom": "Difficile (avance)",
+      "sens": "haut",
+      "format": "nombre",
+      "unite": "pions"
+    }
   ]
 }

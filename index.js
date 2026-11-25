@@ -301,6 +301,9 @@ export default async function (ctx) {
   const saveGames = () => { clearTimeout(gamesTimer); gamesTimer = setTimeout(() => { gamesTimer = null; folder.write('games', games).catch(() => {}); }, 500); };
   const best = (k, v) => { const b = games.best[k]; if (b == null || v > b) { games.best[k] = v; saveGames(); return true; } return false; };
   const gstore = (k, init) => (games[k] ??= init);
+  // les trophées de NeoDex (3.4.8 et plus) : succès et records déclarés dans plugin.json ; sur un NeoDex plus ancien, rien ne se passe
+  const trophy = id => { ctx.games?.unlock(id).catch(() => {}); };
+  const trophyRecord = (id, v) => { if (v != null && Number.isFinite(+v)) ctx.games?.record(id, +v).catch(() => {}); };
 function gameLoop(st, appKey, update, draw) {
   cancelAnimationFrame(st.raf);
   const STEP = 1000 / 60; let acc = 0, last = performance.now();
@@ -385,7 +388,8 @@ function rvEnd() {
   if (rvs.mode === 'deux') { rvs.duo[me > it ? 'b' : me < it ? 'w' : 'n']++; [523, 659, 784].forEach((f, k) => setTimeout(() => beep(f, .15, 'triangle'), k * 120)); }
   else if (rvs.mode === 'net') { rvs.net[me > it ? 'w' : me < it ? 'l' : 'd']++; if (me > it) [523, 659, 784].forEach((f, k) => setTimeout(() => beep(f, .15, 'triangle'), k * 120)); else if (me < it) beep(180, .4, 'sawtooth', 90); }
   else if (me > it) { rvs.w[L]++; best('reversi:' + L, me - it); [523, 659, 784].forEach((f, k) => setTimeout(() => beep(f, .15, 'triangle'), k * 120)); } else if (me < it) { rvs.l[L]++; beep(180, .4, 'sawtooth', 90); } else rvs.d[L]++;
-  saveGames(); rvInfo();
+  if (rvs.mode !== 'deux' && me > it && !it) rvs.blanchi = 1;
+  saveGames(); rvInfo(); rvTrophies();
 }
 const RV_BG = cnv(W, H, b => {
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) px(b, (Math.floor(y / 3) + Math.floor(x / 24)) % 5 === 0 ? '#3a2214' : '#4a2c1a', x, y);
@@ -470,6 +474,14 @@ $('gNew').onclick = () => { rvNew(); $('gNew').blur(); };
 }
 $('rvFs').onclick = () => { $('rvFs').blur(); try { document.fullscreenElement ? document.exitFullscreen() : cv.parentElement.requestFullscreen?.().catch(() => {}); } catch {} };
 cv.__rv = {st: () => rv, rvs: () => rvs, net: () => net, moves: () => rvMoves(rv.b, rv.turn), apply: m => rvApply(m, rv.turn), RV};
-ctx.onOpen(() => { if (!rv) { rvNew(); rv.seen = rv.tick; } gameLoop(rv, 'reversi', () => {}, rvDraw); rvInfo(); });
+// les trophées, tirés des statistiques et des records gardés (aussi à l'ouverture : ce qui a été fait avant compte)
+function rvTrophies() {
+  const b = games.best, w = rvs.w, lv = ['facile', 'normal', 'difficile'];
+  lv.forEach((k, i) => trophyRecord(k, b['reversi:' + i]));
+  if (w[0] >= 1) trophy('facile'); if (w[1] >= 1) trophy('normal'); if (w[2] >= 1) trophy('difficile');
+  if (w[0] + w[1] + w[2] >= 10) trophy('dix'); if ([0, 1, 2].some(i => b['reversi:' + i] >= 40)) trophy('large');
+  if (rvs.net.w >= 1) trophy('net'); if (rvs.duo.n + rvs.duo.b + rvs.duo.w >= 1) trophy('duo'); if (rvs.blanchi) trophy('blanchi');
+}
+ctx.onOpen(() => { if (!rv) { rvNew(); rv.seen = rv.tick; } gameLoop(rv, 'reversi', () => {}, rvDraw); rvInfo(); rvTrophies(); });
 
 }
